@@ -49,12 +49,32 @@ async function buildSkillsDir(config: Record<string, unknown>): Promise<string> 
       availableEntries,
     ),
   );
+  // Symlink Paperclip-managed skills
   for (const entry of availableEntries) {
     if (!desiredNames.has(entry.key)) continue;
     await fs.symlink(
       entry.source,
       path.join(target, entry.runtimeName),
     );
+  }
+  // V2: Also symlink desired user-installed skills from ~/.claude/skills/
+  const managedKeys = new Set(availableEntries.map((e) => e.key));
+  const env =
+    typeof config.env === "object" && config.env !== null && !Array.isArray(config.env)
+      ? (config.env as Record<string, unknown>)
+      : {};
+  const configuredHome = typeof env.HOME === "string" && env.HOME.trim().length > 0 ? path.resolve(env.HOME.trim()) : os.homedir();
+  const skillsHome = path.join(configuredHome, ".claude", "skills");
+  for (const desiredSkill of desiredNames) {
+    if (managedKeys.has(desiredSkill)) continue; // already symlinked above
+    const skillPath = path.join(skillsHome, desiredSkill);
+    try {
+      await fs.access(skillPath);
+      const targetLink = path.join(target, desiredSkill);
+      try { await fs.access(targetLink); } catch { await fs.symlink(skillPath, targetLink); }
+    } catch {
+      // skill not found in ~/.claude/skills, skip
+    }
   }
   return tmp;
 }
