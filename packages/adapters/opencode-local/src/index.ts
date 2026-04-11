@@ -9,6 +9,10 @@ export const models: Array<{ id: string; label: string }> = [
   { id: "openai/gpt-5.2", label: "openai/gpt-5.2" },
   { id: "openai/gpt-5.1-codex-max", label: "openai/gpt-5.1-codex-max" },
   { id: "openai/gpt-5.1-codex-mini", label: "openai/gpt-5.1-codex-mini" },
+  { id: "ollama/gemma4:26b", label: "Gemma 4 26B (local)" },
+  { id: "openrouter/qwen/qwen3-coder", label: "Qwen3 Coder 480B (OpenRouter)" },
+  { id: "openrouter/qwen/qwen3.6-plus:free", label: "Qwen 3.6 Plus FREE (OpenRouter)" },
+  { id: "openrouter/qwen/qwen3.5-plus-02-15", label: "Qwen 3.5 Plus $0.26/M (OpenRouter)" },
 ];
 
 export const agentConfigurationDoc = `# opencode_local agent configuration
