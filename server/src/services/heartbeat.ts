@@ -2187,6 +2187,7 @@ export function heartbeatService(db: Db) {
       enabled: asBoolean(heartbeat.enabled, false),
       intervalSec: Math.max(0, asNumber(heartbeat.intervalSec, 0)),
       wakeOnDemand: asBoolean(heartbeat.wakeOnDemand ?? heartbeat.wakeOnAssignment ?? heartbeat.wakeOnOnDemand ?? heartbeat.wakeOnAutomation, true),
+      wakeOnComment: asBoolean(heartbeat.wakeOnComment, true),
       maxConcurrentRuns: normalizeMaxConcurrentRuns(heartbeat.maxConcurrentRuns),
     };
   }
@@ -3743,6 +3744,10 @@ export function heartbeatService(db: Db) {
     }
     if (source !== "timer" && !policy.wakeOnDemand) {
       await writeSkippedRequest("heartbeat.wakeOnDemand.disabled");
+      return null;
+    }
+    if (!policy.wakeOnComment && (reason === "issue_commented" || reason === "issue_reopened_via_comment")) {
+      await writeSkippedRequest("heartbeat.wakeOnComment.disabled");
       return null;
     }
 
