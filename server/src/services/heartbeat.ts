@@ -3746,7 +3746,7 @@ export function heartbeatService(db: Db) {
       await writeSkippedRequest("heartbeat.wakeOnDemand.disabled");
       return null;
     }
-    if (!policy.wakeOnComment && (reason === "issue_commented" || reason === "issue_reopened_via_comment")) {
+    if (!policy.wakeOnComment && reason === "issue_agent_commented") {
       await writeSkippedRequest("heartbeat.wakeOnComment.disabled");
       return null;
     }

@@ -1752,7 +1752,7 @@ export function issueRoutes(
           addWakeup(assigneeId, {
             source: "automation",
             triggerDetail: "system",
-            reason: reopened ? "issue_reopened_via_comment" : "issue_commented",
+            reason: reopened ? "issue_reopened_via_comment" : actorIsAgent ? "issue_agent_commented" : "issue_commented",
             payload: {
               issueId: id,
               commentId: comment.id,
@@ -1768,7 +1768,7 @@ export function issueRoutes(
               commentId: comment.id,
               wakeCommentId: comment.id,
               source: reopened ? "issue.comment.reopen" : "issue.comment",
-              wakeReason: reopened ? "issue_reopened_via_comment" : "issue_commented",
+              wakeReason: reopened ? "issue_reopened_via_comment" : actorIsAgent ? "issue_agent_commented" : "issue_commented",
               ...(reopened ? { reopenedFrom: reopenFromStatus } : {}),
               ...(interruptedRunId ? { interruptedRunId } : {}),
             },
