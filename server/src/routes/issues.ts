@@ -1260,6 +1260,10 @@ export function issueRoutes(
   router.post("/companies/:companyId/issues", validate(createIssueSchema), async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
+    if (req.body.executionPolicy !== undefined && req.actor.type !== "board") {
+      res.status(403).json({ error: "Only board users can set executionPolicy on issue creation" });
+      return;
+    }
     if (req.body.assigneeAgentId || req.body.assigneeUserId) {
       await assertCanAssignTasks(req, companyId);
     }
@@ -1371,6 +1375,10 @@ export function issueRoutes(
       updateFields.status = "todo";
     }
     if (req.body.executionPolicy !== undefined) {
+      if (req.actor.type !== "board") {
+        res.status(403).json({ error: "Only board users can change executionPolicy" });
+        return;
+      }
       updateFields.executionPolicy = normalizeIssueExecutionPolicy(req.body.executionPolicy);
     }
     const previousExecutionPolicy = normalizeIssueExecutionPolicy(existing.executionPolicy ?? null);
