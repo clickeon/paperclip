@@ -460,9 +460,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const initial = await runAttempt(sessionId);
     const initialFailed =
       !initial.proc.timedOut && ((initial.proc.exitCode ?? 0) !== 0 || Boolean(initial.parsed.errorMessage));
+    // Also detect session errors on clean exit (code 0) — opencode handles
+    // NotFoundError internally and exits 0, bypassing the crash-detection
+    // path.  Scanning stderr catches this and allows a fresh-session retry.
+    const sessionErrorOnCleanExit =
+      !initial.proc.timedOut &&
+      (initial.proc.exitCode ?? 0) === 0 &&
+      isOpenCodeUnknownSessionError(initial.proc.stdout, initial.rawStderr);
     if (
       sessionId &&
-      initialFailed &&
+      (initialFailed || sessionErrorOnCleanExit) &&
       isOpenCodeUnknownSessionError(initial.proc.stdout, initial.rawStderr)
     ) {
       await onLog(
