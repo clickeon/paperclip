@@ -656,7 +656,8 @@ a.paperclip-mention-chip[data-mention-kind="agent"]::before {
   margin: 0.4rem 0 !important;
   font-size: 1em !important;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .paperclip-markdown code {

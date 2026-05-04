@@ -336,15 +336,65 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const resolvedInstructionsFilePath = instructionsFilePath
       ? path.resolve(cwd, instructionsFilePath)
       : "";
-    const instructionsDir = resolvedInstructionsFilePath ? `${path.dirname(resolvedInstructionsFilePath)}/` : "";
+    const instructionsDirPath = resolvedInstructionsFilePath ? path.dirname(resolvedInstructionsFilePath) : "";
+    const instructionsDir = instructionsDirPath ? `${instructionsDirPath}/` : "";
     let instructionsPrefix = "";
-    if (resolvedInstructionsFilePath) {
+    if (resolvedInstructionsFilePath && !sessionId) {
       try {
-        const instructionsContents = await fs.readFile(resolvedInstructionsFilePath, "utf8");
+        const entryContents = await fs.readFile(resolvedInstructionsFilePath, "utf8");
+        const entryFileName = path.basename(resolvedInstructionsFilePath);
+
+        // Bundle sibling .md files from the instructions directory so that
+        // opencode_local agents receive the full instruction set (HEARTBEAT.md,
+        // SOUL.md, TOOLS.md, etc.) — not just the entry file.  Claude_local
+        // relies on Claude CLI reading siblings from disk; opencode_local must
+        // concatenate them into the prompt because the opencode CLI has no
+        // equivalent file-discovery mechanism.
+        const siblingParts: string[] = [];
+        try {
+          const dirEntries = await fs.readdir(instructionsDirPath, { withFileTypes: true });
+          const siblingMdFiles = dirEntries
+            .filter((e) => e.isFile() && e.name.endsWith(".md") && e.name !== entryFileName)
+            .map((e) => e.name)
+            .sort();
+          for (const name of siblingMdFiles) {
+            try {
+              const content = await fs.readFile(path.join(instructionsDirPath, name), "utf8");
+              siblingParts.push(`\n\n--- ${name} ---\n\n${content}`);
+            } catch {
+              // skip unreadable sibling
+            }
+          }
+          // Also bundle files in references/ subdirectory
+          const refsDir = path.join(instructionsDirPath, "references");
+          try {
+            const refEntries = await fs.readdir(refsDir, { withFileTypes: true });
+            const refFiles = refEntries
+              .filter((e) => e.isFile() && e.name.endsWith(".md"))
+              .map((e) => e.name)
+              .sort();
+            for (const name of refFiles) {
+              try {
+                const content = await fs.readFile(path.join(refsDir, name), "utf8");
+                siblingParts.push(`\n\n--- references/${name} ---\n\n${content}`);
+              } catch {
+                // skip unreadable reference file
+              }
+            }
+          } catch {
+            // no references directory
+          }
+        } catch {
+          // can't read instructions directory; proceed with entry file only
+        }
+
+        const bundledCount = siblingParts.length;
         instructionsPrefix =
-          `${instructionsContents}\n\n` +
-          `The above agent instructions were loaded from ${resolvedInstructionsFilePath}. ` +
-          `Resolve any relative file references from ${instructionsDir}.\n\n`;
+          `${entryContents}${siblingParts.join("")}\n\n` +
+          `The above agent instructions were loaded from ${resolvedInstructionsFilePath}` +
+          (bundledCount > 0 ? ` (plus ${bundledCount} bundled sibling file${bundledCount > 1 ? "s" : ""})` : "") +
+          `. Resolve any relative file references from ${instructionsDir}.\n\n`;
+
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         await onLog(
@@ -522,9 +572,16 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       const initial = await runAttempt(sessionId);
       const initialFailed =
         !initial.proc.timedOut && ((initial.proc.exitCode ?? 0) !== 0 || Boolean(initial.parsed.errorMessage));
+      // Also detect session errors on clean exit (code 0) — opencode handles
+      // NotFoundError internally and exits 0, bypassing the crash-detection
+      // path.  Scanning stderr catches this and allows a fresh-session retry.
+      const sessionErrorOnCleanExit =
+        !initial.proc.timedOut &&
+        (initial.proc.exitCode ?? 0) === 0 &&
+        isOpenCodeUnknownSessionError(initial.proc.stdout, initial.rawStderr);
       if (
         sessionId &&
-        initialFailed &&
+        (initialFailed || sessionErrorOnCleanExit) &&
         isOpenCodeUnknownSessionError(initial.proc.stdout, initial.rawStderr)
       ) {
         await onLog(
