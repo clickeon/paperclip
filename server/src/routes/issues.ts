@@ -2100,6 +2100,14 @@ export function issueRoutes(
         lastDecisionId: decisionId,
       };
     }
+    // Fix #4100: normalizeIssueExecutionPolicy() generates stage IDs on every call but
+    // they are not persisted back to the execution_policy column — only executionState is
+    // saved. On the next PATCH, normalize produces new IDs, findStageById() returns null,
+    // and clearExecutionStatePatch() silently wipes executionState, regressing the issue.
+    // Persist the normalized policy with its generated IDs whenever a stage transition fires.
+    if (transition.patch.executionState !== undefined && updateFields.executionPolicy === undefined) {
+      updateFields.executionPolicy = nextExecutionPolicy;
+    }
     Object.assign(updateFields, transition.patch);
     if (reviewRequest !== undefined && transition.patch.executionState === undefined) {
       const existingExecutionState = parseIssueExecutionState(existing.executionState);

@@ -1013,6 +1013,26 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 )}
                 onChange={(v) => mark("heartbeat", "wakeOnDemand", v)}
               />
+              <ToggleField
+                label="Wake on agent comment"
+                hint={help.wakeOnComment}
+                checked={eff(
+                  "heartbeat",
+                  "wakeOnComment",
+                  heartbeat.wakeOnComment !== false,
+                )}
+                onChange={(v) => mark("heartbeat", "wakeOnComment", v)}
+              />
+              <ToggleField
+                label="Wake on user comment"
+                hint={help.wakeOnUserComment}
+                checked={eff(
+                  "heartbeat",
+                  "wakeOnUserComment",
+                  heartbeat.wakeOnUserComment !== false,
+                )}
+                onChange={(v) => mark("heartbeat", "wakeOnUserComment", v)}
+              />
               <Field label="Cooldown (sec)" hint={help.cooldownSec}>
                 <DraftNumberInput
                   value={eff(
