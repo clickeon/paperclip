@@ -2105,7 +2105,12 @@ export function issueRoutes(
     // saved. On the next PATCH, normalize produces new IDs, findStageById() returns null,
     // and clearExecutionStatePatch() silently wipes executionState, regressing the issue.
     // Persist the normalized policy with its generated IDs whenever a stage transition fires.
-    if (transition.patch.executionState !== undefined && updateFields.executionPolicy === undefined) {
+    // Null guard: don't silently clear the policy column when nextExecutionPolicy is null.
+    if (
+      transition.patch.executionState !== undefined &&
+      updateFields.executionPolicy === undefined &&
+      nextExecutionPolicy !== null
+    ) {
       updateFields.executionPolicy = nextExecutionPolicy;
     }
     Object.assign(updateFields, transition.patch);
