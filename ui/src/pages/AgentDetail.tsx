@@ -2489,7 +2489,7 @@ function AgentSkillsTab({
   const queryClient = useQueryClient();
   const [skillDraft, setSkillDraft] = useState<string[]>([]);
   const [lastSavedSkills, setLastSavedSkills] = useState<string[]>([]);
-  const [unmanagedOpen, setUnmanagedOpen] = useState(false);
+  const [unmanagedOpen, setUnmanagedOpen] = useState(true);
   const lastSavedSkillsRef = useRef<string[]>([]);
   const hasHydratedSkillSnapshotRef = useRef(false);
   const skipNextSkillAutosaveRef = useRef(true);
@@ -2626,7 +2626,7 @@ function AgentSkillsTab({
           locationLabel: entry.locationLabel ?? null,
           originLabel: entry.originLabel ?? null,
           linkTo: null,
-          readOnly: true,
+          readOnly: false,
           adapterEntry: entry,
         })),
     [companySkillKeys, skillSnapshot],

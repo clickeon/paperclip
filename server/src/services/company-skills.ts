@@ -1315,17 +1315,14 @@ function resolveRequestedSkillKeysOrThrow(
       continue;
     }
 
-    missing.add(trimmed);
+    // V2: Unknown references may be user-installed skills from ~/.claude/skills/
+    // Pass them through instead of throwing an error
+    resolved.add(trimmed);
   }
 
-  if (ambiguous.size > 0 || missing.size > 0) {
+  if (ambiguous.size > 0) {
     const problems: string[] = [];
-    if (ambiguous.size > 0) {
-      problems.push(`ambiguous references: ${Array.from(ambiguous).sort().join(", ")}`);
-    }
-    if (missing.size > 0) {
-      problems.push(`unknown references: ${Array.from(missing).sort().join(", ")}`);
-    }
+    problems.push(`ambiguous references: ${Array.from(ambiguous).sort().join(", ")}`);
     throw unprocessable(`Invalid company skill selection (${problems.join("; ")}).`);
   }
 

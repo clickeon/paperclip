@@ -209,7 +209,7 @@ export function isSystemIssueDocumentKey(key: string): key is SystemIssueDocumen
 export const ISSUE_REFERENCE_SOURCE_KINDS = ["title", "description", "comment", "document"] as const;
 export type IssueReferenceSourceKind = (typeof ISSUE_REFERENCE_SOURCE_KINDS)[number];
 
-export const ISSUE_EXECUTION_POLICY_MODES = ["normal", "auto"] as const;
+export const ISSUE_EXECUTION_POLICY_MODES = ["normal", "auto", "manager_only"] as const;
 export type IssueExecutionPolicyMode = (typeof ISSUE_EXECUTION_POLICY_MODES)[number];
 
 export const ISSUE_EXECUTION_STAGE_TYPES = ["review", "approval"] as const;

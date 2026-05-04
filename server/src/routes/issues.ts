@@ -1801,10 +1801,26 @@ export function issueRoutes(
     res.json({ ok: true });
   });
 
+  const MANAGER_AGENT_IDS = new Set([
+    "eab0d3d3-19c5-4573-8aeb-3b32e27d3e72",
+    "72076190-c095-425a-90d8-d9d41f04693f",
+    "a5b91053-1baf-4545-83f1-48417f0eb302",
+  ]);
+
+  function isManagerClassActor(req: Request): boolean {
+    if (req.actor.type === "board") return true;
+    if (req.actor.type === "agent" && req.actor.agentId && MANAGER_AGENT_IDS.has(req.actor.agentId)) return true;
+    return false;
+  }
+
   router.post("/companies/:companyId/issues", validate(createIssueSchema), async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
     assertNoAgentHostWorkspaceCommandMutation(req, collectIssueWorkspaceCommandPaths(req.body));
+    if (req.body.executionPolicy !== undefined && !isManagerClassActor(req)) {
+      res.status(403).json({ error: "executionPolicy can only be set by manager-class agents. Request denied." });
+      return;
+    }
     if (req.body.assigneeAgentId || req.body.assigneeUserId) {
       await assertCanAssignTasks(req, companyId);
     }
@@ -2042,6 +2058,10 @@ export function issueRoutes(
       updateFields.status = "todo";
     }
     if (req.body.executionPolicy !== undefined) {
+      if (!isManagerClassActor(req)) {
+        res.status(403).json({ error: "executionPolicy can only be set by manager-class agents. Request denied." });
+        return;
+      }
       updateFields.executionPolicy = normalizeIssueExecutionPolicy(req.body.executionPolicy);
     }
     const previousExecutionPolicy = normalizeIssueExecutionPolicy(existing.executionPolicy ?? null);
@@ -2566,7 +2586,7 @@ export function issueRoutes(
           addWakeup(assigneeId, {
             source: "automation",
             triggerDetail: "system",
-            reason: reopened ? "issue_reopened_via_comment" : "issue_commented",
+            reason: reopened ? "issue_reopened_via_comment" : actorIsAgent ? "issue_agent_commented" : "issue_commented",
             payload: {
               issueId: id,
               commentId: comment.id,
@@ -2583,7 +2603,7 @@ export function issueRoutes(
               commentId: comment.id,
               wakeCommentId: comment.id,
               source: reopened ? "issue.comment.reopen" : "issue.comment",
-              wakeReason: reopened ? "issue_reopened_via_comment" : "issue_commented",
+              wakeReason: reopened ? "issue_reopened_via_comment" : actorIsAgent ? "issue_agent_commented" : "issue_commented",
               ...(reopened ? { reopenedFrom: reopenFromStatus } : {}),
               ...(resumeRequested === true ? { resumeIntent: true, followUpRequested: true } : {}),
               ...(interruptedRunId ? { interruptedRunId } : {}),
